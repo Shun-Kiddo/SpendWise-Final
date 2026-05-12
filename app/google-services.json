@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "529762101797",
+    "firebase_url": "https://lostandfound-53ac9-default-rtdb.firebaseio.com",
+    "project_id": "lostandfound-53ac9",
+    "storage_bucket": "lostandfound-53ac9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:529762101797:android:354634e32c9813ed09edcc",
+        "android_client_info": {
+          "package_name": "com.example.expensetracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqKMRH7vMvGX14CJtJCCfMkGigINiIU-Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:529762101797:android:51316cb8e07069b309edcc",
+        "android_client_info": {
+          "package_name": "com.example.nwssulfdclostandfounddigitalcenter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqKMRH7vMvGX14CJtJCCfMkGigINiIU-Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:529762101797:android:521e0d9c7ed9e9a909edcc",
+        "android_client_info": {
+          "package_name": "com.example.spendwise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqKMRH7vMvGX14CJtJCCfMkGigINiIU-Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
