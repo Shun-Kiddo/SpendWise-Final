@@ -1,7 +1,10 @@
 package com.example.spendwise.authentication
 
+import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,6 +33,8 @@ fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
     onNavigateToSignIn: () -> Unit
 ) {
+    val context = LocalContext.current
+
     // State variables
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -34,225 +42,203 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF8FAFB), Color(0xFFE0F2F1))
+                )
+            )
     ) {
-        Text(
-            text = "Create Account",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Join SpendWise Today",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.secondary
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-
-        val onValueChangeWrapper: (String, (String) -> Unit) -> Unit = { newValue, setter ->
-            setter(newValue)
-            if (errorMessage != null) errorMessage = null
-        }
-
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { onValueChangeWrapper(it) { name = it } },
-            label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = MaterialTheme.shapes.medium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-
-        OutlinedTextField(
-            value = phone,
-            onValueChange = { input ->
-                val filtered = input.filter { it.isDigit() }
-                if (filtered.length <= 11) {
-                    onValueChangeWrapper(filtered) { phone = it }
-                }
-            },
-            label = { Text("Phone Number (11 digits)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            shape = MaterialTheme.shapes.medium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-
-        OutlinedTextField(
-            value = work,
-            onValueChange = { onValueChangeWrapper(it) { work = it } },
-            label = { Text("Occupation (e.g. Student, Engineer)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = MaterialTheme.shapes.medium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Email Field - Optimized for @ sign
-        OutlinedTextField(
-            value = email,
-            onValueChange = { onValueChangeWrapper(it) { email = it } },
-            label = { Text("Email Address") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = MaterialTheme.shapes.medium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password Field with Toggle Logic
-        OutlinedTextField(
-            value = password,
-            onValueChange = { onValueChangeWrapper(it) { password = it } },
-            label = { Text("Password (min. 6 characters)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            // Logic para sa show/hide password
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                val image = if (passwordVisible)
-                    Icons.Filled.Visibility
-                else Icons.Filled.VisibilityOff
-
-                val description = if (passwordVisible) "Hide password" else "Show password"
-
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
-                }
-            },
-            shape = MaterialTheme.shapes.medium
-        )
-
-        // Error Message Display
-        if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sign Up Button using BrandColor
-        Button(
-            onClick = {
-                // Check if all fields are filled
-                if (name.isBlank() || email.isBlank() || password.isBlank() || phone.isBlank() || work.isBlank()) {
-                    errorMessage = "Please fill in all fields"
-                    return@Button
-                }
-
-
-                if (phone.length != 11) {
-                    errorMessage = "Phone number must be exactly 11 digits"
-                    return@Button
-                }
-
-                if (password.length < 6) {
-                    errorMessage = "Password must be at least 6 characters"
-                    return@Button
-                }
-
-                isLoading = true
-                errorMessage = null
-
-                auth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val user = auth.currentUser
-                            val uid = user?.uid ?: ""
-
-
-                            val profileUpdates = UserProfileChangeRequest.Builder()
-                                .setDisplayName(name)
-                                .build()
-
-                            user?.updateProfile(profileUpdates)
-
-
-                            val userData = hashMapOf(
-                                "uid" to uid,
-                                "name" to name,
-                                "phone" to phone,
-                                "work" to work,
-                                "email" to email
-                            )
-
-                            db.collection("users").document(uid)
-                                .set(userData)
-                                .addOnSuccessListener {
-                                    isLoading = false
-                                    onSignUpSuccess()
-                                }
-                                .addOnFailureListener { e ->
-                                    isLoading = false
-                                    errorMessage = "Failed to save profile: ${e.message}"
-                                }
-
-                        } else {
-                            isLoading = false
-                            errorMessage = task.exception?.localizedMessage ?: "Sign Up failed"
-                        }
-                    }
-            },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(containerColor = BrandColor),
-            shape = MaterialTheme.shapes.medium
+                .fillMaxSize()
+                .padding(horizontal = 30.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    "Sign Up",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+            Spacer(modifier = Modifier.height(60.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Navigate to Sign In
-        TextButton(onClick = onNavigateToSignIn) {
             Text(
-                "Already have an account? Sign In",
-                color = BrandColor,
-                fontWeight = FontWeight.SemiBold
+                text = "Create Account",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = Color(0xFF1A1C1E)
             )
+
+            Text(
+                text = "Join SpendWise to manage your money",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // --- INPUT FIELDS ---
+            val fieldColors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = BrandColor,
+                unfocusedBorderColor = Color.LightGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White.copy(alpha = 0.7f),
+                focusedLabelColor = BrandColor
+            )
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Full Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { input ->
+                    val filtered = input.filter { it.isDigit() }
+                    if (filtered.length <= 11) phone = filtered
+                },
+                label = { Text("Phone Number (11 digits)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = work,
+                onValueChange = { work = it },
+                label = { Text("Occupation") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email Address") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password (min. 6 characters)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = BrandColor)
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- SIGN UP BUTTON ---
+            Button(
+                onClick = {
+                    if (name.isBlank() || email.isBlank() || password.isBlank() || phone.isBlank() || work.isBlank()) {
+                        Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (phone.length != 11) {
+                        Toast.makeText(context, "Phone number must be 11 digits", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (password.length < 6) {
+                        Toast.makeText(context, "Password too short", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    isLoading = true
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+                                val uid = user?.uid ?: ""
+
+                                user?.updateProfile(UserProfileChangeRequest.Builder().setDisplayName(name).build())
+
+                                val userData = hashMapOf(
+                                    "uid" to uid,
+                                    "name" to name,
+                                    "phone" to phone,
+                                    "work" to work,
+                                    "email" to email
+                                )
+
+                                db.collection("users").document(uid).set(userData)
+                                    .addOnSuccessListener {
+                                        isLoading = false
+                                        onSignUpSuccess()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        isLoading = false
+                                        Toast.makeText(context, "Database error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                            } else {
+                                isLoading = false
+                                val error = task.exception?.localizedMessage ?: "Sign Up failed"
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = BrandColor),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text("Create Account", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            TextButton(onClick = onNavigateToSignIn) {
+                Row {
+                    Text("Already have an account? ", color = Color.Gray)
+                    Text("Sign In", color = BrandColor, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

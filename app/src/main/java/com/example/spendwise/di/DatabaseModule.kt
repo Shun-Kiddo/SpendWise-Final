@@ -1,6 +1,7 @@
 package com.example.spendwise.di
 import android.content.Context
 import androidx.room.Room
+import com.example.spendwise.data.dao.HiddenCategoryDao
 import com.example.spendwise.data.dao.MonthlyBalanceDao
 import com.example.spendwise.data.dao.MonthlySummaryDao
 import com.example.spendwise.data.roomdb.AppDatabase
@@ -23,7 +24,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "spendwise_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
     @Provides
     @Singleton
@@ -43,5 +46,10 @@ object DatabaseModule {
     @Provides
     fun provideTransactionDao(database: AppDatabase): TransactionDao {
         return database.transactionDao()
+    }
+
+    @Provides
+    fun provideHiddenCategoryDao(appDatabase: AppDatabase): HiddenCategoryDao {
+        return appDatabase.hiddenCategoryDao()
     }
 }

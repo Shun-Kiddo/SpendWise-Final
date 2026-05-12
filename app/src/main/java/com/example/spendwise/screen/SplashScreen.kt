@@ -31,7 +31,7 @@ fun SplashScreen(
 
     LaunchedEffect(key1 = true) {
         startAnimation = true
-        delay(2000)
+        delay(1500)
         onTimeout()
 
     }

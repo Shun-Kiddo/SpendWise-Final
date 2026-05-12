@@ -15,3 +15,8 @@ data class TransactionEntity(
     val type: TransactionType,
     val synced: Boolean = false
 )
+
+@Entity(tableName = "hidden_categories")
+data class HiddenCategoryEntity(
+    @PrimaryKey val name: String
+)

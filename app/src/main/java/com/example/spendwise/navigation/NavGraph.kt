@@ -92,6 +92,7 @@ fun NavGraph() {
             // --- MAIN APP FLOW ---
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Transaction.route) { TransactionScreen() }
+            composable(Screen.Chatbot.route) { ChatbotScreen() }
             composable(Screen.Summary.route) { SummaryScreen() }
 
             composable(Screen.Settings.route) {

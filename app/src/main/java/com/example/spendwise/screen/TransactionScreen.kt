@@ -5,19 +5,35 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.spendwise.navigation.TopNavBar
 import com.example.spendwise.viewmodel.TransactionType
 import androidx.compose.ui.window.Dialog
@@ -28,6 +44,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spendwise.data.entity.TransactionEntity
 import com.example.spendwise.data.roomdb.AppDatabase
 import com.example.spendwise.viewmodel.TransactionViewModel
+import com.example.spendwise.viewmodel.Transaction
+import com.example.spendwise.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
@@ -57,26 +75,32 @@ private fun normalizeDateString(dateStr: String): String {
     }
     return dateStr
 }
+
+private fun getCategoryIcon(title: String): ImageVector {
+    return when (title.lowercase()) {
+        "food" -> Icons.Rounded.Restaurant
+        "salary" -> Icons.Rounded.Payments
+        "transport" -> Icons.Rounded.DirectionsCar
+        "shopping" -> Icons.Rounded.ShoppingBag
+        "bills" -> Icons.Rounded.ReceiptLong
+        "allowance" -> Icons.Rounded.AccountBalanceWallet
+        else -> Icons.Rounded.Category
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
     transactionViewModel: TransactionViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
     val currentUser = auth.currentUser
-
-    // Restore data from Cloud on login
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            transactionViewModel.fetchDataFromFirestore()
-        }
-    }
-
     val allTransactions by transactionViewModel.transactions.collectAsState()
 
+    // Date Filtering
     val calendar = Calendar.getInstance()
     var selectedDate by remember { mutableStateOf(getFormattedDate(calendar)) }
-
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
@@ -84,137 +108,136 @@ fun TransactionScreen(
             cal.set(year, month, dayOfMonth)
             selectedDate = getFormattedDate(cal)
         },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
+        calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    val currentBalance = remember(allTransactions) {
-        allTransactions.sumOf {
-            if (it.type == TransactionType.INCOME) it.amount else -it.amount
-        }
-    }
-
+    // States
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val currentBalance = remember(allTransactions) {
+        allTransactions.sumOf { if (it.type == TransactionType.INCOME) it.amount else -it.amount }
+    }
 
     val filteredTransactions = remember(searchQuery, allTransactions, selectedDate) {
         allTransactions.filter { tx ->
-            val matchesSearch = if (searchQuery.isBlank()) true
-            else tx.title.contains(searchQuery, ignoreCase = true) ||
-                    tx.notes.contains(searchQuery, ignoreCase = true) ||
-                    tx.amount.toString().contains(searchQuery)
-
-            val txNormalizedDate = normalizeDateString(tx.date)
-            val matchesDate = txNormalizedDate == selectedDate
-
+            val matchesSearch = tx.title.contains(searchQuery, ignoreCase = true) ||
+                    tx.notes.contains(searchQuery, ignoreCase = true)
+            val matchesDate = normalizeDateString(tx.date) == selectedDate
             matchesSearch && matchesDate
         }
     }
 
-    LaunchedEffect(allTransactions) {
-        isLoading = true
-        kotlinx.coroutines.delay(500)
-        isLoading = false
+    val transactions by viewModel.transactions.collectAsState(initial = emptyList())
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var transactionToDelete by remember { mutableStateOf<TransactionEntity?>(null) }
+    val hiddenByByUser by viewModel.hiddenCategories.collectAsState(initial = emptyList())
+
+    val dynamicCategories = remember(transactions, hiddenByByUser) {
+        transactions.map { it.title }
+            .distinct()
+            .filter { it !in hiddenByByUser }
     }
 
+    LaunchedEffect(currentUser) { if (currentUser != null) transactionViewModel.fetchDataFromFirestore() }
+
     Scaffold(
+        containerColor = Color(0xFFF8FAFB),
         topBar = { TopNavBar() }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-            OutlinedTextField(
-                shape = RoundedCornerShape(20.dp),
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Search by keyword") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF29CFAE),
-                    focusedLabelColor = Color(0xFF29CFAE)
+            // Search Bar
+            Box(modifier = Modifier.padding(16.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search transactions...", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF29CFAE),
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
                 )
-            )
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Header Section
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("All Transactions", style = MaterialTheme.typography.titleLarge)
+                    Text("History", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black))
                     Text(
-                        text = if (selectedDate == getFormattedDate(Calendar.getInstance())) "Today ($selectedDate)" else selectedDate,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = if (selectedDate == getFormattedDate(Calendar.getInstance())) "Today" else selectedDate,
                         color = Color(0xFF29CFAE),
                         fontWeight = FontWeight.Bold
                     )
                 }
-                IconButton(onClick = { datePickerDialog.show() }) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Filter by Date",
-                        tint = Color(0xFF29CFAE)
-                    )
+                Surface(
+                    onClick = { datePickerDialog.show() },
+                    shape = CircleShape,
+                    color = Color(0xFF29CFAE).copy(alpha = 0.1f)
+                ) {
+                    Icon(Icons.Rounded.Event, null, tint = Color(0xFF29CFAE), modifier = Modifier.padding(12.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                when {
-                    isLoading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF29CFAE))
-                        }
+            // List
+            Box(modifier = Modifier.weight(1f)) {
+                if (filteredTransactions.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No transactions found", color = Color.Gray)
                     }
-                    filteredTransactions.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No transactions for $selectedDate", color = Color.Gray)
-                        }
-                    }
-                    else -> {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(filteredTransactions, key = { it.id }) { transaction ->
-                                TransactionCard(
-                                    transaction = transaction,
-                                    onEdit = {
-                                        selectedTransaction = transaction
-                                        showEditDialog = true
-                                    },
-                                    onDelete = {
-                                        transactionViewModel.deleteTransaction(transaction)
-                                    }
-                                )
-                            }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 80.dp)
+                    ) {
+                        items(filteredTransactions, key = { it.id }) { transaction ->
+                            SwipeableTransactionCard(
+                                transaction = transaction,
+                                onEdit = {
+                                    selectedTransaction = transaction
+                                    showEditDialog = true
+                                },
+                                onDelete = {
+                                    transactionToDelete = transaction
+                                    showDeleteConfirm = true
+                                }
+                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        DeleteConfirmationDialog(
+            onConfirm = {
+                transactionToDelete?.let { transactionViewModel.deleteTransaction(it) }
+                showDeleteConfirm = false
+            },
+            onDismiss = { showDeleteConfirm = false }
+        )
     }
 
     if (showEditDialog && selectedTransaction != null) {
         EditTransactionDialog(
             transaction = selectedTransaction!!,
             currentBalance = currentBalance,
+            existingCategories = dynamicCategories,
             onDismiss = { showEditDialog = false },
             onSave = { updated ->
                 transactionViewModel.updateTransaction(updated)
@@ -224,105 +247,103 @@ fun TransactionScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionCard(
+fun SwipeableTransactionCard(
     transaction: TransactionEntity,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    isLoading: Boolean = false
-){
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 70.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(strokeWidth = 2.dp)
+    onDelete: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> { onEdit(); false }
+                SwipeToDismissBoxValue.EndToStart -> { onDelete(); true }
+                else -> false
             }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val color = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF29CFAE)
+                SwipeToDismissBoxValue.EndToStart -> Color(0xFFE53935)
+                else -> Color.Transparent
+            }
+            Box(
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).background(color).padding(horizontal = 20.dp),
+                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
             ) {
+                Icon(
+                    imageVector = if (direction == SwipeToDismissBoxValue.StartToEnd) Icons.Rounded.Edit else Icons.Rounded.Delete,
+                    contentDescription = null, tint = Color.White
+                )
+            }
+        }
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                val isIncome = transaction.type == TransactionType.INCOME
+                Box(
+                    modifier = Modifier.size(48.dp).background(
+                        color = if (isIncome) Color(0xFF43A047).copy(0.1f) else Color(0xFFE53935).copy(0.1f),
+                        shape = RoundedCornerShape(14.dp)
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = getCategoryIcon(transaction.title),
+                        contentDescription = null,
+                        tint = if (isIncome) Color(0xFF43A047) else Color(0xFFE53935)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = transaction.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = transaction.date,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                    if (transaction.notes.isNotBlank()) {
-                        Text(
-                            text = transaction.notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray.copy(alpha = 0.8f)
-                        )
-                    }
+                    Text(transaction.title, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E), fontSize = 16.sp)
+                    Text(transaction.date, fontSize = 12.sp, color = Color.Gray)
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (transaction.type == TransactionType.INCOME)
-                            "+₱ ${formatMoney(transaction.amount)}"
-                        else
-                            "-₱ ${formatMoney(transaction.amount)}",
-                        color = if (transaction.type == TransactionType.INCOME)
-                            Color(0xFF2E7D32)
-                        else
-                            Color(0xFFC62828),
-                        fontWeight = FontWeight.ExtraBold
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    var expanded by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Options",
-                                tint = Color.Gray
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = {
-                                    expanded = false
-                                    onEdit()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                onClick = {
-                                    expanded = false
-                                    onDelete()
-                                }
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = (if (isIncome) "+" else "-") + "₱${formatMoney(transaction.amount)}",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isIncome) Color(0xFF43A047) else Color(0xFF1A1C1E),
+                    fontSize = 16.sp
+                )
             }
         }
     }
+}
+
+
+@Composable
+fun DeleteConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Transaction", fontWeight = FontWeight.Bold) },
+        text = { Text("Are you sure you want to permanently delete this record? This action cannot be undone.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = Color.Red, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+        containerColor = Color.White
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -330,8 +351,9 @@ fun TransactionCard(
 fun EditTransactionDialog(
     transaction: TransactionEntity,
     currentBalance: Double,
+    existingCategories: List<String>,
     onDismiss: () -> Unit,
-    onSave: (TransactionEntity) -> Unit
+    onSave: (TransactionEntity) -> Unit,
 ) {
     val context = LocalContext.current
     var title by remember { mutableStateOf(transaction.title) }
@@ -339,11 +361,17 @@ fun EditTransactionDialog(
     var notes by remember { mutableStateOf(transaction.notes) }
     var expanded by remember { mutableStateOf(false) }
 
-    val suggestions = if (transaction.type == TransactionType.INCOME)
+    val defaultSuggestions = if (transaction.type == TransactionType.INCOME)
         listOf("Salary", "Allowance", "Gift", "Investment")
     else
         listOf("Food", "Transport", "Bills", "Shopping", "Entertainment")
 
+    // Filter logic: standard suggestions + previous history - hidden items
+    val finalSuggestions = remember(title, existingCategories) {
+        (defaultSuggestions + existingCategories)
+            .distinct()
+            .filter { it.contains(title, ignoreCase = true) }
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -392,13 +420,14 @@ fun EditTransactionDialog(
                         onDismissRequest = { expanded = false },
                         modifier = Modifier.background(Color.White)
                     ) {
-                        suggestions.forEach { selection ->
+                        finalSuggestions.forEach { selection ->
                             DropdownMenuItem(
-                                text = { Text(selection) },
-                                onClick = {
-                                    title = selection
-                                    expanded = false
-                                }
+                                text = {
+                                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                                        Text(selection)
+                                    }
+                                },
+                                onClick = { title = selection; expanded = false }
                             )
                         }
                     }

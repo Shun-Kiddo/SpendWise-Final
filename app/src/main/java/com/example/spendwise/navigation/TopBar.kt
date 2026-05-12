@@ -16,31 +16,27 @@ import com.example.spendwise.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopNavBar() {
-
     TopAppBar(
         windowInsets = WindowInsets(0, 0, 0, 0),
         title = {
             Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-
                 Image(
                     painter = painterResource(id = R.drawable.spendwise1),
                     contentDescription = "Logo",
                     modifier = Modifier
-                        .height(50.dp)
-                        .width(50.dp)
+                        .size(50.dp)
                 )
 
-                // Text next to logo
                 Text(
                     text = "SpendWise",
                     color = Color.White,
-                    style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         },
@@ -48,7 +44,6 @@ fun TopNavBar() {
             containerColor = Color(0xFF29CFAE),
             titleContentColor = Color.White
         ),
-
-        modifier = Modifier.height(70.dp)
+        modifier = Modifier.height(65.dp)
     )
 }

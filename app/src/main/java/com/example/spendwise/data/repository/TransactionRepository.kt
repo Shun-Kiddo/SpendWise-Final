@@ -1,6 +1,8 @@
 package com.example.spendwise.data.repository
 import android.util.Log
+import com.example.spendwise.data.dao.HiddenCategoryDao
 import com.example.spendwise.data.dao.TransactionDao
+import com.example.spendwise.data.entity.HiddenCategoryEntity
 import com.example.spendwise.data.entity.TransactionEntity
 import com.example.spendwise.viewmodel.TransactionType
 import com.google.firebase.auth.FirebaseAuth
@@ -17,7 +19,8 @@ import javax.inject.Singleton
 class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val hiddenCategoryDao: HiddenCategoryDao
 ) {
     private val currentUid: String
         get() = auth.currentUser?.uid ?: ""
@@ -58,6 +61,7 @@ class TransactionRepository @Inject constructor(
     suspend fun addTransaction(transaction: TransactionEntity) {
         val secureTransaction = transaction.copy(userId = currentUid)
         transactionDao.insertTransaction(secureTransaction)
+        unhideCategory(transaction.title)
         uploadToFirebase(secureTransaction)
     }
 
@@ -87,6 +91,18 @@ class TransactionRepository @Inject constructor(
             .addOnFailureListener { e ->
                 Log.e("Repo", "Sync failed for ${transaction.title}: ${e.message}")
             }
+    }
+
+    fun getAllHiddenCategories(): Flow<List<String>> {
+        return hiddenCategoryDao.getAllHidden()
+    }
+
+    suspend fun hideCategory(name: String) {
+        hiddenCategoryDao.insert(HiddenCategoryEntity(name))
+    }
+
+    suspend fun unhideCategory(name: String) {
+        hiddenCategoryDao.delete(name)
     }
 
 }

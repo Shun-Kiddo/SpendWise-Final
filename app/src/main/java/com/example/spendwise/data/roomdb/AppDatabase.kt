@@ -3,10 +3,12 @@ package com.example.spendwise.data.roomdb
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.example.spendwise.data.dao.HiddenCategoryDao
 import com.example.spendwise.data.dao.MonthlyBalanceDao
 import com.example.spendwise.data.dao.MonthlySummaryDao
 import com.example.spendwise.data.dao.TransactionDao
 import com.example.spendwise.data.entity.BalanceHistoryEntity
+import com.example.spendwise.data.entity.HiddenCategoryEntity
 import com.example.spendwise.data.entity.MonthlyBalanceEntity
 import com.example.spendwise.data.entity.MonthlySummaryEntity
 import com.example.spendwise.data.entity.TransactionEntity
@@ -17,9 +19,10 @@ import com.example.spendwise.viewmodel.TransactionTypeConverter
         TransactionEntity::class,
         MonthlySummaryEntity::class,
         MonthlyBalanceEntity::class,
-        BalanceHistoryEntity::class
+        BalanceHistoryEntity::class,
+        HiddenCategoryEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(TransactionTypeConverter::class)
@@ -27,4 +30,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun monthlySummaryDao(): MonthlySummaryDao
     abstract fun monthlyBalanceDao(): MonthlyBalanceDao
+    abstract fun hiddenCategoryDao(): HiddenCategoryDao
 }

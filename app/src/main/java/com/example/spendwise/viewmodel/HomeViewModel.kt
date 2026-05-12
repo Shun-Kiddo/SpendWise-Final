@@ -26,6 +26,19 @@ class HomeViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val hiddenCategories = repository.getAllHiddenCategories()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
+
+    fun hideCategoryFromSuggestions(category: String) {
+        viewModelScope.launch {
+            repository.hideCategory(category)
+        }
+    }
+
     init {
         refreshDataFromCloud()
     }
@@ -45,7 +58,10 @@ class HomeViewModel @Inject constructor(
     fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
             repository.addTransaction(transaction.toEntity())
+
+            repository.unhideCategory(transaction.title)
         }
     }
+
 }
 

@@ -1,5 +1,6 @@
 package com.example.spendwise.navigation
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Assessment
@@ -17,22 +18,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+
 
 @Composable
 fun BottomNavBar(navController: NavController) {
-
     val items = listOf(
-        Screen.Home to Icons.Default.Home,
-        Screen.Transaction to Icons.AutoMirrored.Filled.List,
-        Screen.Summary to Icons.Default.Assessment,
-        Screen.Settings to Icons.Default.Settings
+        Triple(Screen.Home, Icons.Default.Home, "Home"),
+        Triple(Screen.Transaction, Icons.AutoMirrored.Filled.List, "Transaction"),
+        Triple(Screen.Chatbot, Icons.Default.SmartToy, "Assistant"),
+        Triple(Screen.Summary, Icons.Default.Assessment, "Summary"),
+        Triple(Screen.Settings, Icons.Default.Settings, "Settings")
     )
 
-    NavigationBar(containerColor = Color(0xFF29CFAE)) {
+    NavigationBar(
+        containerColor = Color(0xFF29CFAE),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+        tonalElevation = 0.dp
+    ) {
         val currentBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = currentBackStackEntry?.destination?.route
 
-        items.forEach { (screen, icon) ->
+        items.forEach { (screen, icon, label) ->
             val isSelected = currentRoute == screen.route
 
             NavigationBarItem(
@@ -49,23 +62,20 @@ fun BottomNavBar(navController: NavController) {
                 icon = {
                     Icon(
                         imageVector = icon,
-                        contentDescription = screen.route,
-
+                        contentDescription = label,
                         tint = if (isSelected) Color(0xFF29CFAE) else Color.White
                     )
                 },
                 label = {
                     Text(
-                        text = screen.route.replaceFirstChar { it.uppercase() },
+                        text = label,
                         color = Color.White,
-                        fontSize = 9.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-
                     indicatorColor = Color.White,
-
                     selectedTextColor = Color.White,
                     unselectedTextColor = Color.White.copy(alpha = 0.7f)
                 )

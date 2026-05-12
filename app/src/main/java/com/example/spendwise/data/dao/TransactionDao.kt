@@ -1,5 +1,6 @@
 package com.example.spendwise.data.dao
 import androidx.room.*
+import com.example.spendwise.data.entity.HiddenCategoryEntity
 import com.example.spendwise.data.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 @Dao
@@ -16,6 +17,11 @@ interface TransactionDao {
     suspend fun updateTransaction(transaction: TransactionEntity)
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
+
+    @Delete
+    suspend fun delete(transaction: TransactionEntity)
     @Query("SELECT * FROM transactions WHERE userId = :userId AND synced = 0")
     suspend fun getUnsyncedTransactions(userId: String): List<TransactionEntity>
 }
+
+

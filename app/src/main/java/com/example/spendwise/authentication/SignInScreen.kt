@@ -1,5 +1,6 @@
 package com.example.spendwise.authentication
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,8 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,157 +35,156 @@ fun SignInScreen(
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) } // State for toggle
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
 
-    Column(
+    // Modern Gradient Background
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // --- LOGO SECTION ---
-        Image(
-            painter = painterResource(id = R.drawable.spendwise1),
-            contentDescription = "SpendWise Logo",
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF29CFAE)),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Welcome Gastador",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold
-            ),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(25.dp))
-
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = {
-                email = it
-                errorMessage = null
-            },
-            label = { Text("Email Address") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = BrandColor,
-                focusedLabelColor = BrandColor
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password Field with Toggle Logic
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                errorMessage = null
-            },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            // Logic to show or hide password dots
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                val image = if (passwordVisible)
-                    Icons.Filled.Visibility
-                else Icons.Filled.VisibilityOff
-
-                val description = if (passwordVisible) "Hide password" else "Show password"
-
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = BrandColor,
-                focusedLabelColor = BrandColor
-            )
-        )
-
-        // Error Message display
-        if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sign In Button
-        Button(
-            onClick = {
-                if (email.isNotBlank() && password.isNotBlank()) {
-                    isLoading = true
-                    auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            isLoading = false
-                            if (task.isSuccessful) {
-                                onSignInSuccess()
-                            } else {
-                                errorMessage = task.exception?.localizedMessage ?: "Sign In failed"
-                            }
-                        }
-                } else {
-                    errorMessage = "Please enter email and password"
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = BrandColor
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF8FAFB), Color(0xFFE0F2F1))
                 )
-            } else {
-                Text(
-                    "Sign In",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // --- LOGO SECTION ---
+            Surface(
+                modifier = Modifier.size(100.dp),
+                shape = CircleShape,
+                color = BrandColor,
+                shadowElevation = 8.dp
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.spendwise1),
+                    contentDescription = "Logo",
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Fit
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        TextButton(onClick = onNavigateToSignUp) {
             Text(
-                "Don't have an account? Sign Up",
-                color = BrandColor,
-                fontWeight = FontWeight.SemiBold
+                text = "Welcome Gastador",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = Color(0xFF1A1C1E)
             )
+
+            Text(
+                text = "Sign in to track your expenses",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // --- INPUT FIELDS ---
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email Address") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BrandColor,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.7f),
+                    focusedLabelColor = BrandColor
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = BrandColor)
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BrandColor,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.7f),
+                    focusedLabelColor = BrandColor
+                )
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- SIGN IN BUTTON ---
+            Button(
+                onClick = {
+                    if (email.isNotBlank() && password.isNotBlank()) {
+                        isLoading = true
+                        auth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { task ->
+                                isLoading = false
+                                if (task.isSuccessful) {
+                                    onSignInSuccess()
+                                } else {
+                                    val error = task.exception?.localizedMessage ?: "Wrong email or password"
+                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                }
+                            }
+                    } else {
+                        Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = BrandColor),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text("Sign In", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- FOOTER ---
+            TextButton(onClick = onNavigateToSignUp) {
+                Row {
+                    Text("Don't have an account? ", color = Color.Gray)
+                    Text("Sign Up", color = BrandColor, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
