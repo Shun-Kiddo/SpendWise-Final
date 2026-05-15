@@ -14,6 +14,8 @@ import com.example.spendwise.authentication.SignUpScreen
 import com.example.spendwise.authentication.SignInScreen
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.compose.dialog
 
 @Composable
 fun NavGraph() {
@@ -31,6 +33,7 @@ fun NavGraph() {
             if (currentRoute !in authRoutes) {
                 BottomNavBar(navController)
             }
+
         }
     ) { padding ->
         NavHost(
@@ -92,7 +95,14 @@ fun NavGraph() {
             // --- MAIN APP FLOW ---
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Transaction.route) { TransactionScreen() }
-            composable(Screen.Chatbot.route) { ChatbotScreen() }
+            dialog(
+                route = Screen.Chatbot.route,
+                dialogProperties = DialogProperties(
+                    usePlatformDefaultWidth = false
+                )
+            ) {
+                ChatbotScreen(navController = navController)
+            }
             composable(Screen.Summary.route) { SummaryScreen() }
 
             composable(Screen.Settings.route) {

@@ -98,34 +98,37 @@ fun TransactionScreen(
     val currentUser = auth.currentUser
     val allTransactions by transactionViewModel.transactions.collectAsState()
 
-    // Date Filtering
     val calendar = Calendar.getInstance()
     var selectedDate by remember { mutableStateOf(getFormattedDate(calendar)) }
+
+    var isShowingAll by remember { mutableStateOf(true) }
+
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
             val cal = Calendar.getInstance()
             cal.set(year, month, dayOfMonth)
             selectedDate = getFormattedDate(cal)
+            isShowingAll = false
         },
         calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // States
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val currentBalance = remember(allTransactions) {
         allTransactions.sumOf { if (it.type == TransactionType.INCOME) it.amount else -it.amount }
     }
 
-    val filteredTransactions = remember(searchQuery, allTransactions, selectedDate) {
+    val filteredTransactions = remember(searchQuery, allTransactions, selectedDate, isShowingAll) {
         allTransactions.filter { tx ->
             val matchesSearch = tx.title.contains(searchQuery, ignoreCase = true) ||
                     tx.notes.contains(searchQuery, ignoreCase = true)
-            val matchesDate = normalizeDateString(tx.date) == selectedDate
+
+            val matchesDate = if (isShowingAll) true else normalizeDateString(tx.date) == selectedDate
+
             matchesSearch && matchesDate
         }
     }
@@ -149,7 +152,6 @@ fun TransactionScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-            // Search Bar
             Box(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = searchQuery,
@@ -168,7 +170,6 @@ fun TransactionScreen(
                 )
             }
 
-            // Header Section
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -177,23 +178,48 @@ fun TransactionScreen(
                 Column {
                     Text("History", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black))
                     Text(
-                        text = if (selectedDate == getFormattedDate(Calendar.getInstance())) "Today" else selectedDate,
+                        text = if (isShowingAll) "All Transactions"
+                        else if (selectedDate == getFormattedDate(Calendar.getInstance())) "Today"
+                        else selectedDate,
                         color = Color(0xFF29CFAE),
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Surface(
-                    onClick = { datePickerDialog.show() },
-                    shape = CircleShape,
-                    color = Color(0xFF29CFAE).copy(alpha = 0.1f)
-                ) {
-                    Icon(Icons.Rounded.Event, null, tint = Color(0xFF29CFAE), modifier = Modifier.padding(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // NEW: "View All" Icon
+                    Surface(
+                        onClick = { isShowingAll = !isShowingAll },
+                        shape = CircleShape,
+                        color = if (isShowingAll) Color(0xFF29CFAE) else Color(0xFF29CFAE).copy(alpha = 0.1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                            contentDescription = "View All",
+                            tint = if (isShowingAll) Color.White else Color(0xFF29CFAE),
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Surface(
+                        onClick = { datePickerDialog.show() },
+                        shape = CircleShape,
+                        color = if (!isShowingAll) Color(0xFF29CFAE) else Color(0xFF29CFAE).copy(alpha = 0.1f)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Event,
+                            null,
+                            tint = if (!isShowingAll) Color.White else Color(0xFF29CFAE),
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // List
             Box(modifier = Modifier.weight(1f)) {
                 if (filteredTransactions.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -313,7 +339,7 @@ fun SwipeableTransactionCard(
                 Text(
                     text = (if (isIncome) "+" else "-") + "₱${formatMoney(transaction.amount)}",
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (isIncome) Color(0xFF43A047) else Color(0xFF1A1C1E),
+                    color = if (isIncome) Color(0xFF43A047) else Color(0xFFE53935),
                     fontSize = 16.sp
                 )
             }

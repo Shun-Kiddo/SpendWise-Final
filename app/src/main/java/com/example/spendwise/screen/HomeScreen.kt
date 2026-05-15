@@ -116,6 +116,7 @@ fun HomeScreen(
                 }
             )
 
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -178,12 +179,12 @@ fun HeaderSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(280.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(220.dp)
                 .background(
                     color = PrimaryTeal,
                     shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
@@ -194,7 +195,7 @@ fun HeaderSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    .padding(start = 24.dp, end = 24.dp, top = 48.dp, bottom = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -239,6 +240,7 @@ fun HeaderSection(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
+
             Row(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
@@ -332,7 +334,13 @@ fun ModernTransactionItem(transaction: Transaction) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(transaction.title, fontWeight = FontWeight.Bold, color = TextDark)
                 Text(
-                    transaction.date.split(" ").last(),
+                    text = try {
+                        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val date = parser.parse(transaction.date)
+                        parser.format(date!!)
+                    } catch (e: Exception) {
+                        transaction.date.split(" ").first()
+                    },
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -341,12 +349,13 @@ fun ModernTransactionItem(transaction: Transaction) {
             Text(
                 text = (if (isIncome) "+" else "-") + "₱${formatMoney(transaction.amount)}",
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isIncome) IncomeGreen else TextDark,
+                color = if (isIncome) Color(0xFF43A047) else Color(0xFFE53935),
                 fontSize = 16.sp
             )
         }
     }
 }
+
 
 @Composable
 fun EmptyState() {
@@ -495,20 +504,47 @@ fun AddTransactionDialog(
                     TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text("Cancel", color = Color.Gray, fontWeight = FontWeight.SemiBold)
                     }
+
+                    val amountValue = amount.toDoubleOrNull() ?: 0.0
+                    val isAmountValid = amountValue > 0.0
+                    val hasEnoughBalance = if (type == TransactionType.EXPENSE) {
+                        amountValue <= currentBalance
+                    } else {
+                        true
+                    }
+
                     Button(
                         onClick = {
-                            val amountValue = amount.toDoubleOrNull() ?: 0.0
-                            if (amountValue > 0.0) {
-                                onSave(Transaction(id = UUID.randomUUID().toString(), title = title, amount = amountValue, type = type, date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date()), notes = notes))
+                            if (isAmountValid && hasEnoughBalance) {
+                                onSave(
+                                    Transaction(
+                                        id = UUID.randomUUID().toString(),
+                                        title = title,
+                                        amount = amountValue,
+                                        type = type,
+                                        date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date()),
+                                        notes = notes
+                                    )
+                                )
                                 onDismiss()
                             }
                         },
-                        enabled = title.isNotBlank() && amount.isNotBlank(),
+                        // The button will be grayed out if any condition fails
+                        enabled = title.isNotBlank() && isAmountValid && hasEnoughBalance,
                         modifier = Modifier.weight(1.5f),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryTeal,
+                            disabledContainerColor = Color.LightGray // Visual hint it's disabled
+                        )
                     ) {
-                        Text("Save Transaction", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (!hasEnoughBalance && type == TransactionType.EXPENSE)
+                                "Low Balance"
+                            else
+                                "Save Transaction",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

@@ -26,8 +26,16 @@ import com.example.spendwise.viewmodel.TransactionViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.DatePickerDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 
-// Scoped to this file only to avoid "Overload resolution ambiguity"
 private val SummaryCategoryColors = listOf(
     Color(0xFF29CFAE), // Primary Teal
     Color(0xFF4A71C0), // Blue
@@ -41,36 +49,106 @@ private val SummaryCategoryColors = listOf(
 fun SummaryScreen(
     transactionViewModel: TransactionViewModel = hiltViewModel()
 ) {
-
+    val context = LocalContext.current
     val transactionEntities by transactionViewModel.transactions.collectAsState(initial = emptyList())
     val transactions = remember(transactionEntities) { transactionEntities.map { it.toTransaction() } }
 
-    val todayDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
-    val todayTransactions = transactions.filter { it.date.contains(todayDate) }
-    val incomeToday = todayTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-    val expenseToday = todayTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    // --- NEW STATES FOR FILTERING ---
+    var isAllTime by remember { mutableStateOf(false) } // Default to today's analysis
+    val calendar = remember { Calendar.getInstance() }
+    var selectedDateStr by remember {
+        mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+    }
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val cal = Calendar.getInstance()
+            cal.set(year, month, dayOfMonth)
+            selectedDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+            isAllTime = false // Switching to a specific date turns off "All Time"
+        },
+        calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    // --- FILTERED DATA LOGIC ---
+    val displayTransactions = remember(transactions, isAllTime, selectedDateStr) {
+        if (isAllTime) transactions
+        else transactions.filter { it.date.contains(selectedDateStr) }
+    }
+
+    val incomeVal = displayTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+    val expenseVal = displayTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
     Scaffold(
         containerColor = Color(0xFFF8FAFB),
         topBar = { TopNavBar() }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
+            modifier = Modifier.padding(padding).fillMaxSize(),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                Text(
-                    text = "Daily Analysis",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF1A1C1E)
-                    )
-                )
+                // --- NEW HEADER WITH BUTTONS ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = if (isAllTime) "All-Time Analysis" else "Daily Analysis",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF1A1C1E)
+                            )
+                        )
+                        if (!isAllTime) {
+                            Text(
+                                text = selectedDateStr,
+                                color = Color(0xFF29CFAE),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    Row {
+                        // All Transactions Toggle
+                        IconButton(
+                            onClick = { isAllTime = !isAllTime },
+                            modifier = Modifier.background(
+                                if (isAllTime) Color(0xFF29CFAE) else Color.White,
+                                CircleShape
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                                contentDescription = "All History",
+                                tint = if (isAllTime) Color.White else Color.Gray
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        // Calendar Picker
+                        IconButton(
+                            onClick = { datePickerDialog.show() },
+                            modifier = Modifier.background(Color.White, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Event,
+                                contentDescription = "Pick Date",
+                                tint = if (!isAllTime) Color(0xFF29CFAE) else Color.Gray
+                            )
+                        }
+                    }
+                }
+
                 Spacer(Modifier.height(16.dp))
-                DailyDoughnutCard(incomeToday, expenseToday)
+                // Pass the calculated values to the card
+                DailyDoughnutCard(incomeVal, expenseVal)
             }
 
             item {
@@ -82,7 +160,8 @@ fun SummaryScreen(
                     )
                 )
                 Spacer(Modifier.height(16.dp))
-                CategoryBreakdownCard(transactions)
+                // Breakdown respects the same filters
+                CategoryBreakdownCard(displayTransactions)
             }
         }
     }
@@ -164,51 +243,50 @@ fun CategoryBreakdownCard(transactions: List<Transaction>) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            if (expenseData.isEmpty()) {
-                Text("No expenses tracked yet", color = Color.Gray, modifier = Modifier.padding(16.dp))
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Canvas(modifier = Modifier.size(140.dp)) {
-                        var currentStartAngle = -90f
-                        expenseData.forEachIndexed { index, data ->
-                            val sweep = (data.second / totalExpense * 360f).toFloat()
-                            drawArc(
-                                color = SummaryCategoryColors[index % SummaryCategoryColors.size],
-                                startAngle = currentStartAngle,
-                                sweepAngle = sweep,
-                                useCenter = false,
-                                style = Stroke(35f, cap = StrokeCap.Round)
-                            )
-                            currentStartAngle += sweep
+
+                expenseData.forEachIndexed { index, (category, amount) ->
+                    val color = SummaryCategoryColors[index % SummaryCategoryColors.size]
+
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(color))
+                                Spacer(Modifier.width(12.dp))
+                                Text(category, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E))
+                            }
+                            // Calculate percentage share
+                            val percentage = ((amount / totalExpense) * 100).toInt()
+                            Text("$percentage%", fontWeight = FontWeight.Black, color = color)
                         }
-                    }
-                    Text(
-                        "₱${localFormatMoney(totalExpense)}",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp
-                    )
-                }
 
-                Spacer(Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                expenseData.forEachIndexed { index, data ->
-                    Row(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(SummaryCategoryColors[index % SummaryCategoryColors.size]))
-                        Spacer(Modifier.width(12.dp))
-                        Text(data.first, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium, color = Color(0xFF1A1C1E))
-                        Text("₱${localFormatMoney(data.second)}", fontWeight = FontWeight.Bold)
+                        LinearProgressIndicator(
+                            progress = { (amount / totalExpense).toFloat() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(CircleShape),
+                            color = color,
+                            trackColor = Color(0xFFF1F3F4),
+                            strokeCap = StrokeCap.Round
+                        )
+
+                        Text(
+                            text = "₱${localFormatMoney(amount)} spent",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
             }
         }
     }
-}
 
 @Composable
 private fun SummaryLegendItem(label: String, amount: Double, color: Color) {

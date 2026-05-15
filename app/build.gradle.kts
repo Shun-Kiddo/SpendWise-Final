@@ -46,21 +46,22 @@ android {
 }
 
 dependencies {
-    // ✅ Core
+    implementation(libs.androidx.appcompat)
+    // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // ✅ Compose BOM
+    // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
 
-    // ✅ Compose UI
+    // Compose UI
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // ✅ Navigation
+    // Navigation
     implementation(libs.androidx.navigation.compose)
 
     // Hilt (Dependency Injection)
@@ -68,28 +69,32 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // ✅ Room Database
+    // Room Database
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
 
-    // ✅ Icons
+    //  Icons
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
 
     // ✅ Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")
 
-    // ✅ Testing
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // ✅ Debug
+    //  Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Debug
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+
 }

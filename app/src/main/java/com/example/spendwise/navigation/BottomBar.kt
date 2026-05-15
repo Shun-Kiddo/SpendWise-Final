@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 fun BottomNavBar(navController: NavController) {
     val items = listOf(
         Triple(Screen.Home, Icons.Default.Home, "Home"),
-        Triple(Screen.Transaction, Icons.AutoMirrored.Filled.List, "Transaction"),
+        Triple(Screen.Transaction, Icons.AutoMirrored.Filled.List, "Activity"),
         Triple(Screen.Chatbot, Icons.Default.SmartToy, "Assistant"),
         Triple(Screen.Summary, Icons.Default.Assessment, "Summary"),
         Triple(Screen.Settings, Icons.Default.Settings, "Settings")
