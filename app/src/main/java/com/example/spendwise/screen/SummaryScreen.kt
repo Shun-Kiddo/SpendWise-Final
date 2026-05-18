@@ -29,11 +29,7 @@ import java.util.*
 import android.app.DatePickerDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
-import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Event
-import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.ShoppingBag
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 
 private val SummaryCategoryColors = listOf(
@@ -53,8 +49,7 @@ fun SummaryScreen(
     val transactionEntities by transactionViewModel.transactions.collectAsState(initial = emptyList())
     val transactions = remember(transactionEntities) { transactionEntities.map { it.toTransaction() } }
 
-    // --- NEW STATES FOR FILTERING ---
-    var isAllTime by remember { mutableStateOf(false) } // Default to today's analysis
+    var isAllTime by remember { mutableStateOf(false) }
     val calendar = remember { Calendar.getInstance() }
     var selectedDateStr by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
@@ -66,12 +61,11 @@ fun SummaryScreen(
             val cal = Calendar.getInstance()
             cal.set(year, month, dayOfMonth)
             selectedDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
-            isAllTime = false // Switching to a specific date turns off "All Time"
+            isAllTime = false
         },
         calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // --- FILTERED DATA LOGIC ---
     val displayTransactions = remember(transactions, isAllTime, selectedDateStr) {
         if (isAllTime) transactions
         else transactions.filter { it.date.contains(selectedDateStr) }
@@ -90,7 +84,7 @@ fun SummaryScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                // --- NEW HEADER WITH BUTTONS ---
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,7 +109,7 @@ fun SummaryScreen(
                     }
 
                     Row {
-                        // All Transactions Toggle
+
                         IconButton(
                             onClick = { isAllTime = !isAllTime },
                             modifier = Modifier.background(
@@ -132,7 +126,6 @@ fun SummaryScreen(
 
                         Spacer(Modifier.width(8.dp))
 
-                        // Calendar Picker
                         IconButton(
                             onClick = { datePickerDialog.show() },
                             modifier = Modifier.background(Color.White, CircleShape)
@@ -147,7 +140,6 @@ fun SummaryScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                // Pass the calculated values to the card
                 DailyDoughnutCard(incomeVal, expenseVal)
             }
 
@@ -160,7 +152,6 @@ fun SummaryScreen(
                     )
                 )
                 Spacer(Modifier.height(16.dp))
-                // Breakdown respects the same filters
                 CategoryBreakdownCard(displayTransactions)
             }
         }
@@ -185,10 +176,8 @@ fun DailyDoughnutCard(income: Double, expense: Double) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(200.dp)) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val strokeWidth = 45f
-                    // Background Track
                     drawCircle(Color(0xFFF1F3F4), style = Stroke(strokeWidth))
 
-                    // Expense Arc (Red Base)
                     drawArc(
                         color = Color(0xFFE53935).copy(alpha = 0.2f),
                         startAngle = -90f,
@@ -197,7 +186,6 @@ fun DailyDoughnutCard(income: Double, expense: Double) {
                         style = Stroke(strokeWidth, cap = StrokeCap.Round)
                     )
 
-                    // Income Arc (Teal Overlay)
                     drawArc(
                         color = Color(0xFF29CFAE),
                         startAngle = -90f,
@@ -258,7 +246,7 @@ fun CategoryBreakdownCard(transactions: List<Transaction>) {
                                 Spacer(Modifier.width(12.dp))
                                 Text(category, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E))
                             }
-                            // Calculate percentage share
+
                             val percentage = ((amount / totalExpense) * 100).toInt()
                             Text("$percentage%", fontWeight = FontWeight.Black, color = color)
                         }
@@ -300,7 +288,6 @@ private fun SummaryLegendItem(label: String, amount: Double, color: Color) {
     }
 }
 
-// Renamed and marked private to prevent conflicts
 private fun localFormatMoney(amount: Double): String {
     return NumberFormat.getNumberInstance(Locale.US).format(amount)
 }

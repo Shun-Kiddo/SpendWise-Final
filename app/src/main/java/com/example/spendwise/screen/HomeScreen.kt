@@ -38,7 +38,6 @@ import java.util.*
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.spendwise.navigation.TopNavBar
 
-// --- Modern Color Palette ---
 val PrimaryTeal = Color(0xFF29CFAE)
 val BackgroundColor = Color(0xFFF8FAFB)
 val CardWhite = Color(0xFFFFFFFF)
@@ -66,7 +65,6 @@ fun HomeScreen(
 
     val hiddenByByUser by viewModel.hiddenCategories.collectAsState()
 
-    // FILTER HERE: Only show categories that aren't hidden
     val dynamicCategories = remember(transactions, hiddenByByUser) {
         transactions.map { it.title }
             .distinct()
@@ -103,7 +101,6 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-              // Adjust for TopBar
                 .padding(bottom = padding.calculateBottomPadding())
         ) {
             HeaderSection(

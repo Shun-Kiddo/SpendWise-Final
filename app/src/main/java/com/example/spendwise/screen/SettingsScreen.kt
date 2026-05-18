@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.spendwise.navigation.TopNavBar
@@ -82,7 +84,6 @@ fun SettingsScreen(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            // --- PROFILE HEADER SECTION ---
             item {
                 Column(
                     modifier = Modifier
@@ -90,7 +91,7 @@ fun SettingsScreen(
                         .padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Profile Picture Holder
+
                     Box(
                         modifier = Modifier
                             .size(110.dp)
@@ -123,7 +124,6 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Edit Profile Button
                     Button(
                         onClick = { isEditing = true },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White),
@@ -138,7 +138,6 @@ fun SettingsScreen(
                 }
             }
 
-            // --- USER DETAILS CARD ---
             item {
                 Card(
                     modifier = Modifier
@@ -159,7 +158,6 @@ fun SettingsScreen(
                 }
             }
 
-            // --- APP INFO SECTION ---
             item {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text("Support & About", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
@@ -185,7 +183,6 @@ fun SettingsScreen(
         }
     }
 
-    // --- DIALOGS (Logout, Guide, etc. stay same but themed) ---
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
@@ -202,7 +199,6 @@ fun SettingsScreen(
         )
     }
 
-    // --- EDIT PROFILE SHEET ---
     if (isEditing) {
         EditProfileDialog(
             currentProfile = userData,
@@ -354,7 +350,14 @@ fun EditProfileDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") }, shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone Number") }, shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { if (it.length <= 11 && it.all { c -> c.isDigit() }) phone = it },
+                    label = { Text("Phone Number") },
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("${phone.length}/11") }
+                )
                 OutlinedTextField(value = work, onValueChange = { work = it }, label = { Text("Occupation") }, shape = RoundedCornerShape(12.dp))
             }
         }

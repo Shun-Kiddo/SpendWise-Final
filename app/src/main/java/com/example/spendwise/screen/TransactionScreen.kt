@@ -362,6 +362,7 @@ fun DeleteConfirmationDialog(
                 Text("Delete", color = Color.Red, fontWeight = FontWeight.Bold)
             }
         },
+
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", color = Color.Gray)
